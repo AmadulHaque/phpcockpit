@@ -4,9 +4,8 @@
             <div class="flex min-w-0 flex-1 flex-col">
                 <livewire:tinker-console.console-runner
                     :environment="$environment"
-                    :connection-mode="$connectionMode"
                     :project-path="$projectPath"
-                    :wire:key="'editor-'.md5($projectPath.'|'.$environment.'|'.$connectionMode)"
+                    :wire:key="'editor-'.md5($projectPath.'|'.$environment)"
                 />
             </div>
         </div>

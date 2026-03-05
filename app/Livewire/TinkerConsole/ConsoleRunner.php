@@ -12,10 +12,6 @@ class ConsoleRunner extends Component
 
     public string $environment = 'DEV';
 
-    public string $connectionMode = 'Local';
-
-    public bool $safeMode = true;
-
     public bool $prodLocked = true;
 
     public bool $readOnly = false;
@@ -34,16 +30,13 @@ class ConsoleRunner extends Component
 
     public int $historyCursor = -1;
 
-    public string $activeSessionId = 'default';
-
-    public function mount(string $environment = 'DEV', string $connectionMode = 'Local', string $projectPath = ''): void
+    public function mount(string $environment = 'DEV', string $projectPath = ''): void
     {
         $this->environment = strtoupper($environment);
-        $this->connectionMode = $connectionMode;
         $this->projectPath = $projectPath;
         $this->prodLocked = $this->environment === 'PROD';
-        $this->commandInput = $this->defaultSnippet();
-        $this->placeholderOutput = $this->defaultOutput();
+        $this->commandInput = '';
+        $this->placeholderOutput = '';
     }
 
     #[On('project-context-updated')]
@@ -52,10 +45,6 @@ class ConsoleRunner extends Component
         $this->projectPath = $projectPath;
         $this->environment = strtoupper($environment);
         $this->prodLocked = $this->environment === 'PROD';
-
-        if (trim($this->commandInput) === '') {
-            $this->commandInput = $this->defaultSnippet();
-        }
     }
 
     #[On('run-command')]
@@ -82,12 +71,6 @@ class ConsoleRunner extends Component
         $this->cycleHistory('down');
     }
 
-    #[On('execute-approved')]
-    public function executeApproved(string $command, string $classification): void
-    {
-        $this->executeCommand($command, $classification);
-    }
-
     public function runCommand(): void
     {
         if ($this->running) {
@@ -112,21 +95,6 @@ class ConsoleRunner extends Component
 
         if ($this->environment === 'PROD' && $classification === 'hard-danger' && $this->prodLocked) {
             $this->dispatch('toast', type: 'error', message: 'Prod lock is enabled. Hard-danger commands are blocked.');
-
-            return;
-        }
-
-        $requiresConfirmation = ($this->environment === 'PROD' && in_array($classification, ['warn', 'hard-danger'], true))
-            || ($this->safeMode && $classification !== 'safe');
-
-        if ($requiresConfirmation) {
-            $this->dispatch(
-                'request-confirmation',
-                command: $command,
-                classification: $classification,
-                environment: $this->environment,
-                requiresPhrase: $this->environment === 'PROD' && $classification === 'hard-danger',
-            );
 
             return;
         }
@@ -278,24 +246,6 @@ OUT;
         ];
 
         return implode(PHP_EOL, $lines);
-    }
-
-    protected function defaultSnippet(): string
-    {
-        return <<<'PHP'
-Http::withHeaders([
-    'X-Demo' => 'This is some header information',
-])->post('https://httpdump.app/dumps/bcec9ebd-f137-48a8-a203-e2692d5b8cad', [
-    'name' => 'Tinkerwell',
-    'type' => 'Code Editor',
-    'rating' => '6 stars only',
-]);
-PHP;
-    }
-
-    protected function defaultOutput(): string
-    {
-        return $this->generateOutput($this->defaultSnippet(), 'success', 'safe');
     }
 
     public function render()
